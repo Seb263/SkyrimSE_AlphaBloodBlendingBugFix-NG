@@ -1,7 +1,5 @@
 #pragma once
 
-#include <unordered_set>
-
 #include "SettingsIni.hpp"
 
 class ModUtils
@@ -28,7 +26,4 @@ public:
 			processedTextures.insert(texture);
 		}
 	}
-
-private:
-	
 };

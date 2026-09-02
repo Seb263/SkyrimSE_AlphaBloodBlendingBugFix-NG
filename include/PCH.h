@@ -2,22 +2,27 @@
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMMNOSOUND
+#define NOMINMAX
 
 #include <unordered_set>
+#include <shared_mutex>
+#include <future>
 
 #include "RE/Skyrim.h"
 #include "SKSE/SKSE.h"
 
+#include <shellapi.h>
+
 #include <spdlog/sinks/basic_file_sink.h>
 
-#include <ClibUtil/distribution.hpp>
-#include <ClibUtil/editorID.hpp>
-#include <ClibUtil/numeric.hpp>
-#include <ClibUtil/rng.hpp>
-#include <ClibUtil/simpleINI.hpp>
-
-#include <SimpleMath.h>
+#include <SimpleIni.h>
 #include <magic_enum.hpp>
+
+#include "re-fmt.h"
+
+#include "Utils/Debug.hpp"
+
+#define DLLEXPORT __declspec(dllexport)
 
 namespace logger = SKSE::log;
 
@@ -40,7 +45,12 @@ namespace stl
 	void write_vfunc()
 	{
 		REL::Relocation<std::uintptr_t> vtbl{ F::VTABLE[offset] };
-		T::func = vtbl.write_vfunc(T::idx, T::thunk);
+
+		if constexpr (requires { T::idx(); }) {
+			T::func = vtbl.write_vfunc(T::idx(), T::thunk);
+		} else {
+			T::func = vtbl.write_vfunc(T::idx, T::thunk);
+		}
 	}
 
 	template <class F, class T>
@@ -52,22 +62,5 @@ namespace stl
 	inline std::string as_string(std::string_view a_view)
 	{
 		return { a_view.data(), a_view.size() };
-	}
-}
-
-namespace util
-{
-	[[noreturn]] inline static void report_and_fail(std::string_view a_msg, UINT msg_icon = MB_ICONERROR, std::source_location a_loc = std::source_location::current())
-	{
-		spdlog::log(
-			spdlog::source_loc{ a_loc.file_name(), static_cast<int>(a_loc.line()), a_loc.function_name() },
-			spdlog::level::critical, a_msg);
-
-		const auto  plugin{ SKSE::PluginDeclaration::GetSingleton() };
-		const auto  name{ plugin->GetName() };
-		const char* msg_cstr = a_msg.data();
-
-		REX::W32::MessageBoxA(nullptr, msg_cstr, name.data(), msg_icon);
-		REX::W32::TerminateProcess(REX::W32::GetCurrentProcess(), EXIT_FAILURE);
 	}
 }
